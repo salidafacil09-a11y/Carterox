@@ -1,0 +1,281 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#102A5C">
+  <meta name="description" content="El Carterox: rutas de reparto, registro de jornada e informe semanal para carteros.">
+  <title>El Carterox</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" href="icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="icon.svg">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;700;900&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div class="credit">Creado por Aballay Aron (using cloud)</div>
+
+<!-- ============ BIENVENIDA ============ -->
+<section id="onboarding" class="onboarding" hidden>
+  <div class="ob-brand">
+    <img src="icon.svg" alt="" class="ob-logo">
+    <h1>El Carterox</h1>
+    <p>Tu ruta, tu ritmo.</p>
+  </div>
+
+  <div class="ob-step" data-step="0">
+    <label class="ob-q" for="obName">¿Cómo te llamás?</label>
+    <input id="obName" type="text" autocomplete="given-name" placeholder="Tu nombre" maxlength="40">
+    <button class="btn primary big" data-next>Seguir</button>
+  </div>
+
+  <div class="ob-step" data-step="1" hidden>
+    <p class="ob-q">¿En qué te movés para repartir?</p>
+    <div class="choice-grid" id="obVehicle">
+      <button class="choice" data-val="pie"><span class="ico">🚶</span>A pie</button>
+      <button class="choice" data-val="bici"><span class="ico">🚲</span>Bici</button>
+      <button class="choice" data-val="ebici"><span class="ico">⚡</span>Bici eléctrica</button>
+      <button class="choice" data-val="camioneta"><span class="ico">🚐</span>Camioneta</button>
+    </div>
+  </div>
+
+  <div class="ob-step" data-step="2" hidden>
+    <p class="ob-q">¿Sos zurdo o derecho?</p>
+    <p class="ob-help">Define de qué lado tenés las casas al subir la numeración. Zurdo: subís con las casas a tu izquierda. Derecho: subís con las casas a tu derecha. Si el mapa no puede detectar el lado, zurdo sube por par y derecho sube por impar.</p>
+    <div class="choice-grid two" id="obHand">
+      <button class="choice" data-val="zurdo"><span class="ico">🫲</span>Zurdo</button>
+      <button class="choice" data-val="derecho"><span class="ico">🫱</span>Derecho</button>
+    </div>
+  </div>
+
+  <div class="ob-step" data-step="3" hidden>
+    <label class="ob-q" for="obCity">¿En qué localidad repartís?</label>
+    <p class="ob-help">Sirve para que el mapa encuentre bien las calles. Ej: «Mar del Plata, Buenos Aires».</p>
+    <input id="obCity" type="text" placeholder="Ciudad, provincia">
+    <button class="btn primary big" data-next>Seguir</button>
+  </div>
+
+  <div class="ob-step" data-step="4" hidden>
+    <label class="ob-q" for="obKey">Clave de Google Maps</label>
+    <p class="ob-help">Con la clave, la app usa Google Maps para ubicar calles, detectar el lado par/impar y calcular la ruta. Podés cargarla después en Ajustes.</p>
+    <input id="obKey" type="text" placeholder="AIza…" autocomplete="off" spellcheck="false">
+    <button class="btn primary big" data-finish>Empezar</button>
+    <button class="btn ghost" data-finish data-skip>Más tarde</button>
+  </div>
+</section>
+
+<!-- ============ APP ============ -->
+<div id="app" hidden>
+  <header class="topbar">
+    <div class="brand"><img src="icon.svg" alt=""><span>El Carterox</span></div>
+    <div class="who" id="who"></div>
+  </header>
+
+  <main>
+    <!-- ---------- RUTA ---------- -->
+    <section class="tab" id="tab-ruta">
+      <p class="seg-q">¿Qué sacás hoy?</p>
+      <div class="seg" role="tablist" aria-label="Tipo de carta">
+        <button class="seg-btn" data-mode="simples">Cartas simples</button>
+        <button class="seg-btn" data-mode="certi">Certi / Doc / Telegrama</button>
+      </div>
+
+      <!-- SIMPLES -->
+      <div id="modeSimples" hidden>
+        <form class="card" id="streetForm" autocomplete="off">
+          <h2>Agregar calle</h2>
+          <label>Calle
+            <input name="calle" required placeholder="Ej: Pueyrredón">
+          </label>
+          <div class="row2">
+            <label>Desde Nº<input name="desde" type="number" inputmode="numeric" min="1" required placeholder="51"></label>
+            <label>Hasta Nº<input name="hasta" type="number" inputmode="numeric" min="1" required placeholder="720"></label>
+          </div>
+          <button class="btn primary" type="submit">+ Agregar a la ruta</button>
+        </form>
+
+        <div class="summary card" id="routeSummary"></div>
+        <div class="actions-row">
+          <button class="btn" id="btnSortStreets">📍 Ordenar por cercanía</button>
+          <button class="btn" id="btnRecalc">🔄 Recalcular</button>
+        </div>
+        <ol class="street-list" id="streetList"></ol>
+      </div>
+
+      <!-- CERTI -->
+      <div id="modeCerti" hidden>
+        <div class="card scan-card">
+          <h2>Certificadas, documentos y telegramas</h2>
+          <p class="muted">Sacale foto solo a la dirección del destinatario. La app la lee, la registra y ordena la lista según lo cerca que estés.</p>
+          <label class="btn primary big file-btn">📷 Escanear carta
+            <input type="file" accept="image/*" capture="environment" id="certiCam" hidden>
+          </label>
+          <form id="certiManual" class="inline-form" autocomplete="off">
+            <input name="dir" placeholder="O escribila: Ej. Rivadavia 1234" required>
+            <button class="btn" type="submit">Agregar</button>
+          </form>
+          <div id="ocrStatus" class="ocr-status" hidden></div>
+        </div>
+        <div class="summary card" id="certiSummary"></div>
+        <div class="actions-row">
+          <button class="btn" id="btnSortCerti">📍 Reordenar desde mi ubicación</button>
+        </div>
+        <ol class="certi-list" id="certiList"></ol>
+      </div>
+
+      <button class="btn ghost danger small" id="btnNewDay">Nueva jornada (vaciar ruta)</button>
+    </section>
+
+    <!-- ---------- MAPA ---------- -->
+    <section class="tab" id="tab-mapa" hidden>
+      <div id="mapWrap">
+        <div id="map"></div>
+        <div id="mapEmpty" class="map-empty" hidden>
+          <p>Para ver el mapa cargá tu clave de Google Maps en <b>Ajustes</b>.</p>
+        </div>
+        <div class="map-tools">
+          <button class="btn small" id="btnFollow">🎯 Seguirme</button>
+          <button class="btn small" id="btnFit">🗺️ Ver ruta</button>
+        </div>
+      </div>
+      <div class="next-stop card" id="nextStop"></div>
+    </section>
+
+    <!-- ---------- REGISTRO ---------- -->
+    <section class="tab" id="tab-registro" hidden>
+      <div class="card">
+        <div class="reg-head">
+          <h2>Registro del día</h2>
+          <input type="date" id="regDate">
+        </div>
+        <p class="muted">Todo se carga a mano y se guarda solo.</p>
+      </div>
+
+      <div class="card">
+        <h3>Horarios</h3>
+        <div class="times" id="regTimes"></div>
+        <div class="kpis" id="regTimeKpis"></div>
+      </div>
+
+      <div class="card">
+        <h3>Cartas simples</h3>
+        <div class="row3">
+          <label>Sacadas<input type="number" inputmode="numeric" min="0" data-reg="simplesSacadas"></label>
+          <label>Repartidas<input type="number" inputmode="numeric" min="0" data-reg="simplesRepartidas"></label>
+          <label>Sin repartir<output data-calc="simplesNo">0</output></label>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>Certi / Documento / Telegrama</h3>
+        <div class="row3">
+          <label>Sacadas<input type="number" inputmode="numeric" min="0" data-reg="certiSacadas"></label>
+          <label>Repartidas<input type="number" inputmode="numeric" min="0" data-reg="certiRepartidas"></label>
+          <label>Sin repartir<output data-calc="certiNo">0</output></label>
+        </div>
+      </div>
+    </section>
+
+    <!-- ---------- INFORME ---------- -->
+    <section class="tab" id="tab-informe" hidden>
+      <div class="card week-nav">
+        <button class="btn small" id="wkPrev" aria-label="Semana anterior">◀</button>
+        <div id="wkLabel"></div>
+        <button class="btn small" id="wkNext" aria-label="Semana siguiente">▶</button>
+      </div>
+      <div class="card" id="weekGoal"></div>
+      <div class="card" id="weekTable"></div>
+      <div class="card" id="weekCerti"></div>
+      <button class="btn primary" id="btnShareWeek">Compartir informe</button>
+    </section>
+
+    <!-- ---------- AJUSTES ---------- -->
+    <section class="tab" id="tab-ajustes" hidden>
+      <form class="card" id="settingsForm" autocomplete="off">
+        <h2>Tus datos</h2>
+        <label>Nombre<input name="name" maxlength="40"></label>
+        <label>Me muevo en
+          <select name="vehicle">
+            <option value="pie">A pie</option>
+            <option value="bici">Bici</option>
+            <option value="ebici">Bici eléctrica</option>
+            <option value="camioneta">Camioneta</option>
+          </select>
+        </label>
+        <label>Mano
+          <select name="hand">
+            <option value="zurdo">Zurdo (subo con las casas a la izquierda)</option>
+            <option value="derecho">Derecho (subo con las casas a la derecha)</option>
+          </select>
+        </label>
+        <label>Localidad<input name="city"></label>
+        <label>Meta semanal de simples<input name="goal" type="number" min="1" inputmode="numeric"></label>
+        <label>Clave de Google Maps<input name="apiKey" autocomplete="off" spellcheck="false" placeholder="AIza…"></label>
+        <button class="btn primary" type="submit">Guardar</button>
+      </form>
+
+      <div class="card">
+        <h2>Copia de seguridad</h2>
+        <p class="muted">Los datos quedan guardados en este teléfono. Bajate una copia de vez en cuando.</p>
+        <div class="actions-row">
+          <button class="btn" id="btnExport">⬇️ Exportar</button>
+          <label class="btn file-btn">⬆️ Importar<input type="file" accept="application/json" id="importFile" hidden></label>
+        </div>
+      </div>
+      <p class="muted center small">El Carterox es una app independiente, sin relación con ninguna empresa de correo.</p>
+    </section>
+  </main>
+
+  <nav class="bottomnav">
+    <button data-tab="ruta" class="active"><span>🧭</span>Ruta</button>
+    <button data-tab="mapa"><span>🗺️</span>Mapa</button>
+    <button data-tab="registro"><span>📝</span>Registro</button>
+    <button data-tab="informe"><span>📊</span>Informe</button>
+    <button data-tab="ajustes"><span>⚙️</span>Ajustes</button>
+  </nav>
+</div>
+
+<!-- ============ DIÁLOGOS ============ -->
+<dialog id="dlgSide" class="dlg">
+  <form method="dialog">
+    <h2 id="sideTitle"></h2>
+    <p id="sideInfo" class="muted"></p>
+    <div class="side-options">
+      <button value="par" class="choice wide" id="optPar"></button>
+      <button value="impar" class="choice wide" id="optImpar"></button>
+    </div>
+    <button value="cancel" class="btn ghost">Cancelar</button>
+  </form>
+</dialog>
+
+<dialog id="dlgCerti" class="dlg">
+  <form method="dialog" id="certiEditForm">
+    <h2>Dirección leída</h2>
+    <p class="muted small" id="certiRaw"></p>
+    <input name="dir" id="certiDir" required>
+    <div class="actions-row">
+      <button value="cancel" class="btn ghost" formnovalidate>Descartar</button>
+      <button value="ok" class="btn primary">Registrar</button>
+    </div>
+  </form>
+</dialog>
+
+<dialog id="dlgPhoto" class="dlg">
+  <form method="dialog">
+    <img id="photoBig" alt="Foto de la carta">
+    <p id="photoCaption" class="muted"></p>
+    <div class="actions-row">
+      <button value="del" class="btn ghost danger">Borrar foto</button>
+      <button value="ok" class="btn primary">Cerrar</button>
+    </div>
+  </form>
+</dialog>
+
+<input type="file" accept="image/*" capture="environment" id="simpleCam" hidden>
+<div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+<script src="app.js"></script>
+</body>
+</html>

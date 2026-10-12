@@ -1,0 +1,15 @@
+{
+  "name": "El Carterox",
+  "short_name": "Carterox",
+  "description": "Rutas de reparto, registro de jornada e informe semanal para carteros.",
+  "lang": "es-AR",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#102A5C",
+  "theme_color": "#102A5C",
+  "icons": [
+    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+  ]
+}
